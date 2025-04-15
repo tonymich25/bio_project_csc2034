@@ -4,15 +4,27 @@ from evol import Population
 from PIL import Image, ImageDraw, ImageChops
 from random import randint
 
-POLYGON_COUNT=150
+POLYGON_COUNT=100
 SIDES=3
+
+SHAPES = 100
+MAX = 255 * 200 * 200
+TARGET = Image.open("8a.png")
+TARGET.load()
+
+
+def get_random_pixel_color():
+    x = randint(0, TARGET.width - 1)
+    y = randint(0, TARGET.height - 1)
+
+    return TARGET.getpixel((x, y))
 
 def make_polygon(n):
     # HINT: 0 <= r|g|b < 256, 30 <= a <= 60, 10 <= x|y < 190
     return [(randint(10,189), randint(10,189),
              randint(10,189), randint(10,189),
              randint(10,189), randint(10,189)),
-            (randint(0,255), randint(0,255), randint(0,255), randint(30,60))]
+            (get_random_pixel_color())]
 
 ##
 def initialise():
@@ -25,11 +37,6 @@ def draw(solution):
     for polygon in solution:
         canvas.polygon(polygon[0], fill=polygon[1])
     return image
-
-SHAPES = 100
-MAX = 255 * 200 * 200
-TARGET = Image.open("8a.png")
-TARGET.load()
 
 def evaluate(solution):
     image = draw(solution)
