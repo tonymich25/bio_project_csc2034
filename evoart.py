@@ -21,9 +21,9 @@ def get_random_pixel_color():
 
 def make_polygon(n):
     # HINT: 0 <= r|g|b < 256, 30 <= a <= 60, 10 <= x|y < 190
-    return [(randint(10,189), randint(10,189),
-             randint(10,189), randint(10,189),
-             randint(10,189), randint(10,189)),
+    return [(randint(0,199), randint(0,199),
+             randint(0,199), randint(0,199),
+             randint(0,199), randint(0,199)),
             (get_random_pixel_color())]
 
 ##
@@ -112,7 +112,7 @@ def mutate(chromosome, rate):
 
         coords = []
         for coords_poly in polygon[0]:
-            coords.append(max(10, min(189, round((coords_poly + (random.random() - 0.5) * rate)))))
+            coords.append(max(0, min(200, round((coords_poly + (random.random() - 0.5) * rate)))))
         coords = tuple(coords)
 
         colors = []
