@@ -66,7 +66,7 @@ def select(population):
 
 def fit_selection(population):
 
-    ten_parents = random.sample(population, 20)
+    ten_parents = random.sample(population, 10)
     # Sort based on fitness
     ten_parents.sort(key=lambda fit_filter: fit_filter.fitness)
     #print(ten_parents[8], ten_parents[9])
@@ -110,21 +110,26 @@ def mutate(chromosome, rate):
 
     for polygon in chromosome:
 
-        coords = []
-        for coords_poly in polygon[0]:
-            coords.append(max(0, min(200, round((coords_poly + (random.random() - 0.5) * rate)))))
-        coords = tuple(coords)
+        # Small chance to add new polygons to help get out of a minor improvement loop
+        if random.random() < 0.05:
+            mutated_chromosome.append(make_polygon(SIDES))
 
-        colors = []
-        i=0
-        for colors_poly in polygon[1]:
-            if i < 3:
-               colors.append(max(0, min(255, round((colors_poly + (random.random() - 0.5) * rate)))))
-            else:
-               colors.append(max(30, min(60, round((colors_poly + (random.random() - 0.5) * rate)))))
-        colors = tuple(colors)
+        else:
+            coords = []
+            for coords_poly in polygon[0]:
+                coords.append(max(0, min(200, round((coords_poly + (random.random() - 0.5) * rate)))))
+            coords = tuple(coords)
 
-        mutated_chromosome.append((coords, colors))
+            colors = []
+            i=0
+            for colors_poly in polygon[1]:
+                if i < 3:
+                   colors.append(max(0, min(255, round((colors_poly + (random.random() - 0.5) * rate)))))
+                else:
+                   colors.append(max(30, min(60, round((colors_poly + (random.random() - 0.5) * rate)))))
+            colors = tuple(colors)
+
+            mutated_chromosome.append((coords, colors))
     return mutated_chromosome
 
 
