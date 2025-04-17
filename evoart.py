@@ -20,10 +20,17 @@ def get_random_pixel_color():
     return TARGET.getpixel((x, y))
 
 def make_polygon(n):
-    # HINT: 0 <= r|g|b < 256, 30 <= a <= 60, 10 <= x|y < 190
-    return [(randint(0,199), randint(0,199),
-             randint(0,199), randint(0,199),
-             randint(0,199), randint(0,199)),
+    if random.random() < 0.05:
+
+        return [(0 if random.random() < 0.5 else 199, 0 if random.random() < 0.5 else 199,
+                 0 if random.random() < 0.5 else 199, 0 if random.random() < 0.5 else 199,
+                 0 if random.random() < 0.5 else 199, 0 if random.random() < 0.5 else 199),
+                (get_random_pixel_color())]
+
+
+    return [(randint(0, 199), randint(0, 199),
+             randint(0, 199), randint(0, 199),
+             randint(0, 199), randint(0, 199)),
             (get_random_pixel_color())]
 
 ##
@@ -74,33 +81,12 @@ def fit_selection(population):
 
 
 
-##
-# Get the best parts of both
+## Split fit parents in half
 def combine(mom, dad):
     mid = len(mom) // 2
     child = mom[:mid] + dad[mid:]
     return child
 
-'''
-    child = []
-
-    for m_poly, d_poly in zip(mom, dad):
-
-        coords = []
-        for m, d in zip(m_poly[0], d_poly[0]):
-            coords.append((m + d) // 2)
-        coords = tuple(coords)
-
-        colors = []
-        for m, d in zip(m_poly[1], d_poly[1]):
-            colors.append((m + d) // 2)
-        colors = tuple(colors)
-
-        child.append((coords, colors))
-
-    #print(child)
-    return child
-'''
 
 
 ##
@@ -111,7 +97,7 @@ def mutate(chromosome, rate):
     for polygon in chromosome:
 
         # Small chance to add new polygons to help get out of a minor improvement loop
-        if random.random() < 0.05:
+        if random.random() < 0.03:
             mutated_chromosome.append(make_polygon(SIDES))
 
         else:
