@@ -68,16 +68,15 @@ def initialise():
 
 ##
 def draw(solution):
-    """Always returns RGB image for compatibility, but preserves alpha during drawing"""
-    # Create RGBA canvas with white background
+    # 1. Create a blank white RGBA canvas (200x200 pixels)
     image = Image.new("RGBA", (200, 200), (255, 255, 255, 255))
     canvas = ImageDraw.Draw(image)
 
-    # Draw polygons with proper z-ordering
-    for polygon in sorted(solution, key=lambda x: x[1][3] if len(x[1]) > 3 else 255):
-        canvas.polygon(polygon[0], fill=polygon[1])
+    # 2. Draw all polygons with proper transparency handling
+    for polygon in solution:
+        canvas.polygon(polygon[0], fill=polygon[1])  # Draw each shape
 
-    # Composite onto white background and convert to RGB
+    # 3. Convert to RGB before returning (removes alpha channel)
     return image.convert("RGB")
 
 
