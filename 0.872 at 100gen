@@ -1,0 +1,150 @@
+2025-04-21 21:36:21,5,2600,0.702,0.8
+2025-04-21 21:36:25,10,5100,0.722,0.812
+2025-04-21 21:36:29,15,7600,0.718,0.824
+2025-04-21 21:36:34,20,10100,0.744,0.839
+2025-04-21 21:36:38,25,12600,0.676,0.85
+2025-04-21 21:36:42,30,15100,0.783,0.855
+2025-04-21 21:36:46,35,17600,0.789,0.856
+2025-04-21 21:36:50,40,20100,0.791,0.859
+2025-04-21 21:36:54,45,22600,0.76,0.86
+2025-04-21 21:36:59,50,25100,0.66,0.862
+2025-04-21 21:37:03,55,27600,0.739,0.863
+2025-04-21 21:37:08,60,30100,0.803,0.866
+2025-04-21 21:37:12,65,32600,0.787,0.87
+2025-04-21 21:37:17,70,35100,0.695,0.871
+2025-04-21 21:37:21,75,37600,0.738,0.871
+2025-04-21 21:37:25,80,40100,0.789,0.871
+2025-04-21 21:37:29,85,42600,0.819,0.871
+2025-04-21 21:37:34,90,45100,0.709,0.872
+2025-04-21 21:37:38,95,47600,0.777,0.872
+2025-04-21 21:37:42,100,50100,0.78,0.872
+
+
+import random
+
+from evol import Population
+from PIL import Image, ImageDraw, ImageChops
+from random import randint
+
+POLYGON_COUNT=100
+SIDES=3
+MIN_SIDES = 3
+MAX_SIDES = 6
+#print(SIDES)
+
+SHAPES = 100
+MAX = 255 * 200 * 200
+TARGET = Image.open("8a.png")
+TARGET.load()
+
+
+def get_random_pixel_color():
+    x = randint(0, TARGET.width - 1)
+    y = randint(0, TARGET.height - 1)
+
+    return TARGET.getpixel((x, y))
+
+def make_polygon():
+    sides = randint(MIN_SIDES, MAX_SIDES)
+    points = []
+
+    if random.random() < 0.02:
+
+        for _ in range(sides):
+            points.append(0 if random.random() < 0.5 else 199)
+            points.append(0 if random.random() < 0.5 else 199)
+
+
+        return [tuple(points), get_random_pixel_color()]
+
+
+    for _ in range(sides):
+        points.append(randint(0, 199))
+        points.append(randint(0, 199))
+
+    return [tuple(points), get_random_pixel_color()]
+
+##
+def initialise():
+    return [make_polygon() for i in range(POLYGON_COUNT)]
+
+##
+def draw(solution):
+    image = Image.new("RGB", (200, 200))
+    canvas = ImageDraw.Draw(image, "RGBA")
+    for polygon in solution:
+        canvas.polygon(polygon[0], fill=polygon[1])
+    return image
+
+
+
+def evolve(population, args):
+    for i in range(5):
+        population.survive(fraction=0.1)
+        population.breed(parent_picker=fit_selection , combiner=combine)
+        population.mutate(mutate_function=mutate, rate=0.2)
+    return population
+
+
+##
+# Original - Random Selection
+def select(population):
+    mom = random.choice(population)
+    print(mom.fitness)
+
+    dad = random.choice(population)
+    return mom, dad
+
+
+def fit_selection(population):
+
+    ten_parents = random.sample(population, 10)
+    # Sort based on fitness
+    ten_parents.sort(key=lambda fit_filter: fit_filter.fitness)
+    #print(ten_parents[8], ten_parents[9])
+    return ten_parents[8], ten_parents[9]
+
+
+def combine(mom, dad):
+    # Choose crossover style randomly
+    if random.random() < 0.7:  # 70% multi-point
+        splits = sorted(random.sample(range(min(len(mom), len(dad))), 2))
+        return mom[:splits[0]] + dad[splits[0]:splits[1]] + mom[splits[1]:]
+    else:  # 30% geometric blending
+        return [
+            (
+                tuple(int((m+d)/2) for m, d in zip(m_poly[0], d_poly[0])),
+                tuple(int((m+d)/2) for m, d in zip(m_poly[1], d_poly[1]))
+            )
+            for m_poly, d_poly in zip(mom, dad)
+        ]
+
+
+## Maybe change mutation way
+def mutate(chromosome, rate):
+
+    mutated_chromosome = []
+
+    for polygon in chromosome:
+
+        # Small chance to add new polygons to help get out of a minor improvement loop
+        if random.random() < 0.03:
+            mutated_chromosome.append(make_polygon())
+
+        else:
+            coords = []
+            for coords_poly in polygon[0]:
+                coords.append(max(0, min(200, round((coords_poly + (random.random() - 0.5) * rate)))))
+            coords = tuple(coords)
+
+            colors = []
+            i=0
+            for colors_poly in polygon[1]:
+                if i < 3:
+                   colors.append(max(0, min(255, round((colors_poly + (random.random() - 0.5) * rate)))))
+                else:
+                    colors.append(get_random_pixel_color())
+            colors = tuple(colors)
+
+            mutated_chromosome.append((coords, colors))
+    return mutated_chromosome
