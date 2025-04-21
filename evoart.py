@@ -6,6 +6,9 @@ from random import randint
 
 POLYGON_COUNT=100
 SIDES=3
+MIN_SIDES = 3
+MAX_SIDES = 6
+#print(SIDES)
 
 SHAPES = 100
 MAX = 255 * 200 * 200
@@ -19,23 +22,49 @@ def get_random_pixel_color():
 
     return TARGET.getpixel((x, y))
 
-def make_polygon(n):
+def get_alpha():
+    r = random.random()
+    if r < 0.3:
+        return randint(30, 100)
+    elif r < 0.8:
+        return randint(100, 200)
+    else:
+        return 255
+
+def make_polygon():
+    sides = randint(MIN_SIDES, MAX_SIDES)
+    points = []
+
+    # Create shape at the edge of the canvas
     if random.random() < 0.02:
+        for _ in range(sides):
+            points.append(0 if random.random() < 0.5 else 199)
+            points.append(0 if random.random() < 0.5 else 199)
 
-        return [(0 if random.random() < 0.5 else 199, 0 if random.random() < 0.5 else 199,
-                 0 if random.random() < 0.5 else 199, 0 if random.random() < 0.5 else 199,
-                 0 if random.random() < 0.5 else 199, 0 if random.random() < 0.5 else 199),
-                (get_random_pixel_color())]
+    # Create random
+    for _ in range(sides):
+        points.append(randint(0, 199))
+        points.append(randint(0, 199))
 
 
-    return [(randint(0, 199), randint(0, 199),
-             randint(0, 199), randint(0, 199),
-             randint(0, 199), randint(0, 199)),
-            (get_random_pixel_color())]
+
+    if random.random() < 0.7:
+        color = list(get_random_pixel_color()[:3])
+        color.append(255)
+
+
+    else:
+        base_color = get_random_pixel_color()
+        color = [max(0, min(255, base + randint(-20, 20))) for base in base_color[:3]]
+        color.append(get_alpha())
+
+
+
+    return [tuple(points), tuple(color)]
 
 ##
 def initialise():
-    return [make_polygon(SIDES) for i in range(POLYGON_COUNT)]
+    return [make_polygon() for i in range(POLYGON_COUNT)]
 
 ##
 def draw(solution):
@@ -49,7 +78,7 @@ def draw(solution):
 
 def evolve(population, args):
     for i in range(5):
-        population.survive(fraction=0.4)
+        population.survive(fraction=0.1)
         population.breed(parent_picker=fit_selection , combiner=combine)
         population.mutate(mutate_function=mutate, rate=0.2)
     return population
@@ -74,116 +103,58 @@ def fit_selection(population):
     return ten_parents[8], ten_parents[9]
 
 
-
-## Split fit parents in half
 def combine(mom, dad):
-    mid = len(mom) // 2
-    child = mom[:mid] + dad[mid:]
-    return child
+    # 70% multi-point crossover, 30% uniform crossover
+    if random.random() < 0.7:
+        splits = sorted(random.sample(range(min(len(mom), len(dad))), 2))
+        return mom[:splits[0]] + dad[splits[0]:splits[1]] + mom[splits[1]:]
+    else:
+        return [random.choice(pair) for pair in zip(mom, dad)]
 
 
 
-## Maybe change mutation way
 def mutate(chromosome, rate):
+    # 1. Focus only on these key mutation types
+    mutation_type = random.choice([
+        'modify_coords',
+        'modify_color',
+        'add_polygon',
+        'remove_polygon'
+    ])
 
-    mutated_chromosome = []
+    # Work on a copy
+    mutated = list(chromosome)
 
-    for polygon in chromosome:
-
-        # Small chance to add new polygons to help get out of a minor improvement loop
-        if random.random() < 0.03:
-            mutated_chromosome.append(make_polygon(SIDES))
-
-        else:
-            coords = []
-            for coords_poly in polygon[0]:
-                coords.append(max(0, min(200, round((coords_poly + (random.random() - 0.5) * rate)))))
-            coords = tuple(coords)
-
-            colors = []
-            i=0
-            for colors_poly in polygon[1]:
-                if i < 3:
-                   colors.append(max(0, min(255, round((colors_poly + (random.random() - 0.5) * rate)))))
-                else:
-                    colors.append(max(30, min(60, round((colors_poly + (random.random() - 0.5) * rate)))))
-            colors = tuple(colors)
-
-            mutated_chromosome.append((coords, colors))
-    return mutated_chromosome
-
-
-"""def mutate(chromosome, rate, generation, current_fitness):
-    mutated_chromosome = []
-
-    # Dynamic mutation rates (aggressive early, subtle late)
-    coord_rate = rate * (1.5 if generation < 20 else 0.5)  # Early: explore, Late: refine
-    color_rate = rate * (1.2 if current_fitness < 0.8 else 0.3)  # Reduce color noise near plateau
-
-    # 1. Chance to add/remove polygons (structural diversity)
-    if current_fitness > 0.85 and random.random() < 0.1:
-        if len(chromosome) > POLYGON_COUNT // 2 and random.random() < 0.5:
-            # Remove a random polygon (simplify)
-            chromosome.pop(random.randint(0, len(chromosome) - 1))
-        else:
-            # Add a new polygon (explore)
-            chromosome.append(make_polygon(SIDES))
-
-    # 2. Merge/Split polygons (break plateaus)
-    if current_fitness > 0.85 and random.random() < 0.15:
-        if random.random() < 0.5 and len(chromosome) >= 2:
-            # Merge two adjacent polygons
-            i = random.randint(0, len(chromosome) - 2)
-            merged_coords = (
-                    chromosome[i][0][:2] + chromosome[i + 1][0][2:4] + chromosome[i][0][4:]  # Mix coordinates
-            )
-            merged_color = tuple(
-                (c1 + c2) // 2 for c1, c2 in zip(chromosome[i][1], chromosome[i + 1][1])  # Avg color
-            )
-            mutated_chromosome.extend(chromosome[:i] + [(merged_coords, merged_color)] + chromosome[i + 2:])
-            return mutated_chromosome
-        else:
-            # Split a random polygon
-            poly = random.choice(chromosome)
-            split_idx = random.choice([2, 4])  # Split after 2nd or 4th coordinate
-            new_poly1 = (poly[0][:split_idx], poly[1])
-            new_poly2 = (poly[0][split_idx:], poly[1])
-            mutated_chromosome.extend(chromosome + [new_poly1, new_poly2])
-            return mutated_chromosome
-
-    # 3. Standard mutations (coordinates + colors)
-    for polygon in chromosome:
-        # Mutate coordinates (with dynamic rate)
-        new_coords = tuple(
-            max(0, min(199, coord + int((random.random() - 0.5) * coord_rate)))
-            for coord in polygon[0]
+    # 2. Targeted coordinate mutation
+    if mutation_type == 'modify_coords' and mutated:
+        idx = random.randrange(len(mutated))
+        coords, color = mutated[idx]
+        mutated[idx] = (
+            tuple(
+                max(0, min(199, c + int(random.gauss(0, 10))))
+                for c in coords
+            ),
+            color
         )
 
-        # Mutate color (including alpha, no hard limits)
-        new_color = tuple(
-            max(0, min(255, int(color + (random.random() - 0.5) * color_rate)))
-            for color in polygon[1]
+    # 3. Targeted color mutation
+    elif mutation_type == 'modify_color' and mutated:
+        idx = random.randrange(len(mutated))
+        coords, color = mutated[idx]
+        mutated[idx] = (
+            coords,
+            tuple(
+                max(0, min(255, c + int(random.gauss(0, 25))))
+                if i < 3 else c  # Don't mutate alpha
+                for i, c in enumerate(color)
+            )
         )
 
-        mutated_chromosome.append((new_coords, new_color))
+    # 4. Structural changes
+    elif mutation_type == 'add_polygon' and len(mutated) < POLYGON_COUNT * 1.5:
+        mutated.insert(random.randrange(len(mutated) + 1), make_polygon())
 
-    return mutated_chromosome"""
+    elif mutation_type == 'remove_polygon' and len(mutated) > POLYGON_COUNT // 2:
+        mutated.pop(random.randrange(len(mutated)))
 
-
-
-#population = Population.generate(initialise, evaluate, size=100, maximize=True)
-#draw(population[0].chromosome).save("solution.png")
-
-def debug_drawing():
-    """Test if polygon drawing works correctly. Run this separately."""
-    # 1. Create a test polygon covering the entire canvas
-    test_poly = [(0, 0, 199, 0, 199, 199), (255, 0, 0, 60)]  # Red, opaque
-
-    # 2. Draw it
-    img = Image.new("RGB", (200, 200))
-    canvas = ImageDraw.Draw(img, "RGBA")
-    canvas.polygon(test_poly[0], fill=test_poly[1])
-
-    # 3. Save and inspect
-    img.save("debug_polygon.png")
-    print("Saved debug_polygon.png. Check for gaps!")
+    return mutated
