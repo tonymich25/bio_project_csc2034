@@ -8,7 +8,8 @@ POLYGON_COUNT=100
 SIDES=3
 MIN_SIDES = 3
 MAX_SIDES = 6
-#print(SIDES)
+POP_SURVIVAL = 0.1
+MUTATION_RATE = 0.4
 
 SHAPES = 100
 MAX = 255 * 200 * 200
@@ -47,18 +48,14 @@ def make_polygon():
         points.append(randint(0, 199))
 
 
-
     if random.random() < 0.7:
         color = list(get_random_pixel_color()[:3])
         color.append(255)
-
 
     else:
         base_color = get_random_pixel_color()
         color = [max(0, min(255, base + randint(-20, 20))) for base in base_color[:3]]
         color.append(get_alpha())
-
-
 
     return [tuple(points), tuple(color)]
 
@@ -82,9 +79,9 @@ def draw(solution):
 
 def evolve(population, args):
     for i in range(5):
-        population.survive(fraction=0.1)
+        population.survive(fraction=POP_SURVIVAL)
         population.breed(parent_picker=fit_selection , combiner=combine)
-        population.mutate(mutate_function=mutate, rate=0.2)
+        population.mutate(mutate_function=mutate, rate=MUTATION_RATE)
     return population
 
 
