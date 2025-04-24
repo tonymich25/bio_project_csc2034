@@ -17,11 +17,11 @@ TARGET = Image.open("8a.png")
 TARGET.load()
 
 
-# At program start:
-ALL_PIXELS = list(TARGET.getdata())
-
 def get_random_pixel_color():
-    return random.choice(ALL_PIXELS)
+    x = randint(0, TARGET.width - 1)
+    y = randint(0, TARGET.height - 1)
+
+    return TARGET.getpixel((x, y))
 
 def get_alpha():
     r = random.random()
