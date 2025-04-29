@@ -25,7 +25,7 @@ def get_random_pixel_color():
 
 def get_alpha():
     r = random.random()
-    if r < 0.3:
+    if r < 0.1:
         return randint(30, 100)
     elif r < 0.8:
         return randint(100, 200)
@@ -42,22 +42,26 @@ def make_polygon():
             points.append(0 if random.random() < 0.5 else 199)
             points.append(0 if random.random() < 0.5 else 199)
 
+
     # Create random
     for _ in range(sides):
         points.append(randint(0, 199))
         points.append(randint(0, 199))
 
 
-    if random.random() < 0.7:
+    if random.random() < 0.5:
         color = list(get_random_pixel_color()[:3])
         color.append(255)
+
 
     else:
         base_color = get_random_pixel_color()
         color = [max(0, min(255, base + randint(-20, 20))) for base in base_color[:3]]
         color.append(get_alpha())
 
+
     return [tuple(points), tuple(color)]
+
 
 ##
 def initialise():
@@ -77,22 +81,13 @@ def draw(solution):
     return image.convert("RGB")
 
 
+
 def evolve(population, args):
-    for i in range(5):
-        population.survive(fraction=POP_SURVIVAL)
-        population.breed(parent_picker=fit_selection , combiner=combine)
-        population.mutate(mutate_function=mutate, rate=MUTATION_RATE)
+    population.survive(fraction=0.1)
+    population.breed(parent_picker=fit_selection , combiner=combine)
+    population.mutate(mutate_function=mutate, rate=0.2)
     return population
 
-
-##
-# Original - Random Selection
-def select(population):
-    mom = random.choice(population)
-    print(mom.fitness)
-
-    dad = random.choice(population)
-    return mom, dad
 
 
 def fit_selection(population):
@@ -104,16 +99,21 @@ def fit_selection(population):
     return ten_parents[8], ten_parents[9]
 
 
+
+## Split fit parents in half
 def combine(mom, dad):
-    # 70% multi-point crossover, 30% uniform crossover
+    # 70% multi-point crossover
     if random.random() < 0.7:
         splits = sorted(random.sample(range(min(len(mom), len(dad))), 2))
         return mom[:splits[0]] + dad[splits[0]:splits[1]] + mom[splits[1]:]
+    # 30% uniform crossover
     else:
         return [random.choice(pair) for pair in zip(mom, dad)]
 
 
 
+
+## Maybe change mutation way
 def mutate(chromosome, rate):
     # 1. Focus only on these key mutation types
     mutation_type = random.choice([
@@ -124,13 +124,12 @@ def mutate(chromosome, rate):
     ])
 
     # Work on a copy
-    mutated = list(chromosome)
 
     # 2. Targeted coordinate mutation
-    if mutation_type == 'modify_coords' and mutated:
-        idx = random.randrange(len(mutated))
-        coords, color = mutated[idx]
-        mutated[idx] = (
+    if mutation_type == 'modify_coords':
+        index = random.randrange(len(chromosome))
+        coords, color = chromosome[index]
+        chromosome[index] = (
             tuple(
                 max(0, min(199, c + int(random.gauss(0, 10))))
                 for c in coords
@@ -139,10 +138,10 @@ def mutate(chromosome, rate):
         )
 
     # 3. Targeted color mutation
-    elif mutation_type == 'modify_color' and mutated:
-        idx = random.randrange(len(mutated))
-        coords, color = mutated[idx]
-        mutated[idx] = (
+    elif mutation_type == 'modify_color':
+        index = random.randrange(len(chromosome))
+        coords, color = chromosome[index]
+        chromosome[index] = (
             coords,
             tuple(
                 max(0, min(255, c + int(random.gauss(0, 25))))
@@ -152,10 +151,10 @@ def mutate(chromosome, rate):
         )
 
     # 4. Structural changes
-    elif mutation_type == 'add_polygon' and len(mutated) < POLYGON_COUNT * 1.5:
-        mutated.insert(random.randrange(len(mutated) + 1), make_polygon())
+    elif mutation_type == 'add_polygon' and len(chromosome) < POLYGON_COUNT * 1.5:
+        chromosome.insert(random.randrange(len(chromosome) + 1), make_polygon())
 
-    elif mutation_type == 'remove_polygon' and len(mutated) > POLYGON_COUNT // 2:
-        mutated.pop(random.randrange(len(mutated)))
+    elif mutation_type == 'remove_polygon' and len(chromosome) > POLYGON_COUNT // 2:
+        chromosome.pop(random.randrange(len(chromosome)))
 
-    return mutated
+    return chromosome
