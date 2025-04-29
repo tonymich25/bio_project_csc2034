@@ -1,27 +1,13 @@
 import random
-
-from evol import Population
-from PIL import Image, ImageDraw, ImageChops
+from PIL import Image, ImageDraw
 from random import randint
 
-POLYGON_COUNT=100
-SIDES=3
+POLYGON_COUNT = 100
 MIN_SIDES = 3
 MAX_SIDES = 6
-POP_SURVIVAL = 0.1
-MUTATION_RATE = 0.4
-
-SHAPES = 100
-MAX = 255 * 200 * 200
-TARGET = Image.open("8a.png")
-TARGET.load()
+SURVIVAL = 0.1
 
 
-def get_random_pixel_color():
-    x = randint(0, TARGET.width - 1)
-    y = randint(0, TARGET.height - 1)
-
-    return TARGET.getpixel((x, y))
 
 def get_alpha():
     r = random.random()
@@ -32,33 +18,31 @@ def get_alpha():
     else:
         return 255
 
+
 def make_polygon():
     sides = randint(MIN_SIDES, MAX_SIDES)
     points = []
 
     # Create shape at the edge of the canvas
     if random.random() < 0.02:
-        for _ in range(sides):
+        for i in range(sides):
             points.append(0 if random.random() < 0.5 else 199)
             points.append(0 if random.random() < 0.5 else 199)
-
 
     # Create random
-    for _ in range(sides):
+    for i in range(sides):
         points.append(randint(0, 199))
         points.append(randint(0, 199))
 
+    color=[]
 
-    if random.random() < 0.5:
-        color = list(get_random_pixel_color()[:3])
+    for i in range(3):
+        color.append(randint(0, 199))
+    if random.random() < 0.7:
         color.append(255)
 
-
     else:
-        base_color = get_random_pixel_color()
-        color = [max(0, min(255, base + randint(-20, 20))) for base in base_color[:3]]
         color.append(get_alpha())
-
 
     return [tuple(points), tuple(color)]
 
@@ -67,37 +51,31 @@ def make_polygon():
 def initialise():
     return [make_polygon() for i in range(POLYGON_COUNT)]
 
+
 ##
 def draw(solution):
-    # 1. Create a blank white RGBA canvas (200x200 pixels)
     image = Image.new("RGBA", (200, 200), (255, 255, 255, 255))
     canvas = ImageDraw.Draw(image)
 
-    # 2. Draw all polygons with proper transparency handling
     for polygon in solution:
         canvas.polygon(polygon[0], fill=polygon[1])  # Draw each shape
 
-    # 3. Convert to RGB before returning (removes alpha channel)
     return image.convert("RGB")
 
 
-
 def evolve(population, args):
-    population.survive(fraction=0.1)
-    population.breed(parent_picker=fit_selection , combiner=combine)
-    population.mutate(mutate_function=mutate, rate=0.2)
+    population.survive(fraction=SURVIVAL)
+    population.breed(parent_picker=fit_selection, combiner=combine)
+    population.mutate(mutate_function=mutate)
     return population
 
 
-
 def fit_selection(population):
-
     ten_parents = random.sample(population, 10)
     # Sort based on fitness
     ten_parents.sort(key=lambda fit_filter: fit_filter.fitness)
-    #print(ten_parents[8], ten_parents[9])
+    # print(ten_parents[8], ten_parents[9])
     return ten_parents[8], ten_parents[9]
-
 
 
 ## Split fit parents in half
@@ -111,22 +89,9 @@ def combine(mom, dad):
         return [random.choice(pair) for pair in zip(mom, dad)]
 
 
+def mutate(chromosome):
 
-
-## Maybe change mutation way
-def mutate(chromosome, rate):
-    # 1. Focus only on these key mutation types
-    mutation_type = random.choice([
-        'modify_coords',
-        'modify_color',
-        'add_polygon',
-        'remove_polygon'
-    ])
-
-    # Work on a copy
-
-    # 2. Targeted coordinate mutation
-    if mutation_type == 'modify_coords':
+    if random.random() < 0.35:
         index = random.randrange(len(chromosome))
         coords, color = chromosome[index]
         chromosome[index] = (
@@ -137,24 +102,24 @@ def mutate(chromosome, rate):
             color
         )
 
-    # 3. Targeted color mutation
-    elif mutation_type == 'modify_color':
+
+    elif random.random() < 0.35:
         index = random.randrange(len(chromosome))
         coords, color = chromosome[index]
         chromosome[index] = (
             coords,
             tuple(
                 max(0, min(255, c + int(random.gauss(0, 25))))
-                if i < 3 else c  # Don't mutate alpha
+                if i < 3 else c
                 for i, c in enumerate(color)
             )
         )
 
-    # 4. Structural changes
-    elif mutation_type == 'add_polygon' and len(chromosome) < POLYGON_COUNT * 1.5:
+
+    elif random.random() < 0.05 and len(chromosome) < POLYGON_COUNT * 1.5:
         chromosome.insert(random.randrange(len(chromosome) + 1), make_polygon())
 
-    elif mutation_type == 'remove_polygon' and len(chromosome) > POLYGON_COUNT // 2:
+    elif random.random() < 0.03 and len(chromosome) > POLYGON_COUNT // 2:
         chromosome.pop(random.randrange(len(chromosome)))
 
     return chromosome
