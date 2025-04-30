@@ -8,8 +8,8 @@ MAX_SIDES = 6
 SURVIVAL = 0.1
 
 
-
 def get_alpha():
+    # Biased alpha values for polygons
     r = random.random()
     if r < 0.1:
         return randint(30, 100)
@@ -20,46 +20,42 @@ def get_alpha():
 
 
 def make_polygon():
+    # Randomly choose a number of sides for polygon
     sides = randint(MIN_SIDES, MAX_SIDES)
     points = []
 
-    # Create shape at the edge of the canvas
-    if random.random() < 0.02:
-        for i in range(sides):
-            points.append(0 if random.random() < 0.5 else 199)
-            points.append(0 if random.random() < 0.5 else 199)
 
-    # Create random
+    # Assign random position for polygon
     for i in range(sides):
         points.append(randint(0, 199))
         points.append(randint(0, 199))
 
-    color=[]
-
+    colour = []
+    # Assign random colour for polygon
     for i in range(3):
-        color.append(randint(0, 199))
+        colour.append(randint(0, 199))
+
+    # Assign alpha value for polygon based on chance
     if random.random() < 0.7:
-        color.append(255)
-
+        colour.append(255)
     else:
-        color.append(get_alpha())
+        colour.append(get_alpha())
 
-    return [tuple(points), tuple(color)]
+    return [tuple(points), tuple(colour)]
 
 
-##
 def initialise():
     return [make_polygon() for i in range(POLYGON_COUNT)]
 
 
-##
 def draw(solution):
+    # Create a blank canvas with white background
     image = Image.new("RGBA", (200, 200), (255, 255, 255, 255))
     canvas = ImageDraw.Draw(image)
-
+    # Draw each polygon on the canvas
     for polygon in solution:
-        canvas.polygon(polygon[0], fill=polygon[1])  # Draw each shape
-
+        canvas.polygon(polygon[0], fill=polygon[1])
+    # Return the canvas as RGB
     return image.convert("RGB")
 
 
@@ -71,27 +67,23 @@ def evolve(population, args):
 
 
 def fit_selection(population):
+    # Select 10 random parents
     ten_parents = random.sample(population, 10)
     # Sort based on fitness
     ten_parents.sort(key=lambda fit_filter: fit_filter.fitness)
-    # print(ten_parents[8], ten_parents[9])
+    # Return the 2 best parents
     return ten_parents[8], ten_parents[9]
 
 
-## Split fit parents in half
 def combine(mom, dad):
-    # 70% multi-point crossover
-    if random.random() < 0.7:
-        splits = sorted(random.sample(range(min(len(mom), len(dad))), 2))
-        return mom[:splits[0]] + dad[splits[0]:splits[1]] + mom[splits[1]:]
-    # 30% uniform crossover
-    else:
-        return [random.choice(pair) for pair in zip(mom, dad)]
+    # Multi-point crossover
+    splits = sorted(random.sample(range(min(len(mom), len(dad))), 2))
+    return mom[:splits[0]] + dad[splits[0]:splits[1]] + mom[splits[1]:]
 
 
 def mutate(chromosome):
-
-    if random.random() < 0.35:
+    # 50% to mutate coordinates of a polygon inside the provided chromosome
+    if random.random() < 0.65:
         index = random.randrange(len(chromosome))
         coords, color = chromosome[index]
         chromosome[index] = (
@@ -102,8 +94,8 @@ def mutate(chromosome):
             color
         )
 
-
-    elif random.random() < 0.35:
+    # 50% to mutate colour of a polygon inside the provided chromosome
+    elif random.random() < 0.65:
         index = random.randrange(len(chromosome))
         coords, color = chromosome[index]
         chromosome[index] = (
@@ -115,11 +107,11 @@ def mutate(chromosome):
             )
         )
 
-
-    elif random.random() < 0.05 and len(chromosome) < POLYGON_COUNT * 1.5:
+    # 10% to create and assign a polygon to the provided chromosome
+    elif random.random() < 0.1 and len(chromosome) < POLYGON_COUNT * 1.5:
         chromosome.insert(random.randrange(len(chromosome) + 1), make_polygon())
-
-    elif random.random() < 0.03 and len(chromosome) > POLYGON_COUNT // 2:
+    # 5% to delete a random polygon from the provided chromosome
+    elif random.random() < 0.06 and len(chromosome) > POLYGON_COUNT // 2:
         chromosome.pop(random.randrange(len(chromosome)))
 
     return chromosome
