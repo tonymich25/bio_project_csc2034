@@ -40,7 +40,7 @@ from pathlib import Path
 from docopt import docopt
 
 from evoart import evolve, initialise, draw
-
+import evoart
 
 SHAPES = 100
 MAX = 255 * 200 * 200
@@ -63,7 +63,7 @@ if not path.exists():
 # read the target image
 TARGET = PIL.Image.open(path)
 TARGET.load()  # closes the file, needed for parallel eval
-
+evoart.TARGET = TARGET
 
 def evaluate(solution):
     image = draw(solution)
