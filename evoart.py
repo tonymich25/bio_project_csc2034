@@ -11,9 +11,9 @@ SURVIVAL = 0.1
 def get_alpha():
     # Biased alpha values for polygons
     r = random.random()
-    if r < 0.1:
+    if r < 0.3:
         return randint(30, 100)
-    elif r < 0.8:
+    elif r < 0.85:
         return randint(100, 200)
     else:
         return 255
@@ -23,7 +23,6 @@ def make_polygon():
     # Randomly choose a number of sides for polygon
     sides = randint(MIN_SIDES, MAX_SIDES)
     points = []
-
 
     # Assign random position for polygon
     for i in range(sides):
@@ -36,7 +35,7 @@ def make_polygon():
         colour.append(randint(0, 199))
 
     # Assign alpha value for polygon based on chance
-    if random.random() < 0.7:
+    if random.random() < 0.5:
         colour.append(255)
     else:
         colour.append(get_alpha())
@@ -75,6 +74,7 @@ def fit_selection(population):
     return ten_parents[8], ten_parents[9]
 
 
+
 def combine(mom, dad):
     # Multi-point crossover
     splits = sorted(random.sample(range(min(len(mom), len(dad))), 2))
@@ -83,7 +83,7 @@ def combine(mom, dad):
 
 def mutate(chromosome):
     # 50% to mutate coordinates of a polygon inside the provided chromosome
-    if random.random() < 0.65:
+    if random.random() < 0.9:
         index = random.randrange(len(chromosome))
         coords, color = chromosome[index]
         chromosome[index] = (
@@ -95,7 +95,7 @@ def mutate(chromosome):
         )
 
     # 50% to mutate colour of a polygon inside the provided chromosome
-    elif random.random() < 0.65:
+    elif random.random() < 0.5:
         index = random.randrange(len(chromosome))
         coords, color = chromosome[index]
         chromosome[index] = (
@@ -111,7 +111,7 @@ def mutate(chromosome):
     elif random.random() < 0.1 and len(chromosome) < POLYGON_COUNT * 1.5:
         chromosome.insert(random.randrange(len(chromosome) + 1), make_polygon())
     # 5% to delete a random polygon from the provided chromosome
-    elif random.random() < 0.06 and len(chromosome) > POLYGON_COUNT // 2:
+    elif random.random() < 0.05 and len(chromosome) > POLYGON_COUNT // 2:
         chromosome.pop(random.randrange(len(chromosome)))
 
     return chromosome
